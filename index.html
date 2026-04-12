@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limit Explorer Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0e1117;
+            --card-bg: #1e1e26;
+            --accent: #4f8bf9;
+            --text: #ffffff;
+            --border: #30363d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background-color: #161b22;
+            padding: 20px;
+            border-right: 1px solid var(--border);
+        }
+
+        .sidebar input, .sidebar slider {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            background: #262730;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            width: 90%;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .header { grid-column: span 2; }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid var(--accent);
+        }
+
+        .graph-container {
+            background: #000;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .status-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .success { background: #1b4332; color: #8efabe; }
+        .error { background: #431b1b; color: #fa8e8e; }
+
+        .footer {
+            grid-column: span 2;
+            margin-top: 30px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>Configuration</h2>
+    <label>Function f(x):</label><br>
+    <input type="text" id="funcInput" value="x^2" oninput="updateAll()"><br><br>
+    
+    <label>Point a (x approaching):</label>
+    <input type="range" id="targetA" min="-100" max="100" step="0.1" value="2" oninput="updateAll()">
+    <div id="aValue" style="text-align: center; font-size: 1.2em;">2.0</div>
+    
+    <hr style="border: 0.5px solid var(--border); margin: 20px 0;">
+    <p style="font-size: 0.8em; color: #8b949e;">Try: <br>• sin(x)/x<br>• abs(x)/x<br>• 1/x</p>
+</div>
+
+<div class="main-content">
+    <div class="header">
+        <h1>📐 Limit Concepts & Continuity Lab</h1>
+    </div>
+
+    <div class="graph-container">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <div class="analysis">
+        <div class="card">
+            <h3>Analysis at x = <span id="displayA">2.0</span></h3>
+            <p><b>1. Left-hand Limit (LHL):</b> <span id="lhlText">---</span></p>
+            <p><b>2. Right-hand Limit (RHL):</b> <span id="rhlText">---</span></p>
+            <div id="limitStatus" class="status-box">Calculating...</div>
+            <p style="margin-top: 15px;"><b>Function Value f(a):</b> <span id="faText">---</span></p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>
+            <h3>📘 Educational Concepts</h3>
+            <ul>
+                <li><b>Existence:</b> The limit exists only if LHL = RHL.</li>
+                <li><b>Continuity:</b> The function is continuous if the limit exists and equals f(a).</li>
+            </ul>
+        </div>
+        <div>
+            <h3>⚡ Real-World: Power Surges</h3>
+            <p>In electrical engineering, a switch causes a "Jump Discontinuity." At the moment of connection, the limit does not exist because the voltage jumps instantly from 0 to 120.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let myChart;
+
+    function calculateLimit(f, a, direction) {
+        const epsilon = 0.000001;
+        const xVal = direction === 'left' ? a - epsilon : a + epsilon;
+        try {
+            return math.evaluate(f, {x: xVal});
+        } catch (e) {
+            return "Error";
+        }
+    }
+
+    function updateAll() {
+        const func = document.getElementById('funcInput').value;
+        const a = parseFloat(document.getElementById('targetA').value);
+        document.getElementById('aValue').innerText = a.toFixed(1);
+        document.getElementById('displayA').innerText = a.toFixed(1);
+
+        // Calculate Limits
+        const lhl = calculateLimit(func, a, 'left');
+        const rhl = calculateLimit(func, a, 'right');
+        
+        let fa;
+        try { 
+            fa = math.evaluate(func, {x: a}); 
+        } catch(e) { 
+            fa = "Undefined"; 
+        }
+
+        // Display formatting
+        const formatVal = (val) => {
+            if (typeof val !== 'number') return val;
+            if (!Number.isFinite(val)) return "Infinity";
+            return val.toFixed(4);
+        };
+
+        // Update Text
+        document.getElementById('lhlText').innerText = formatVal(lhl);
+        document.getElementById('rhlText').innerText = formatVal(rhl);
+        document.getElementById('faText').innerText = formatVal(fa);
+
+        const statusBox = document.getElementById('limitStatus');
+        
+        // Logic check: Limit DNE if f(a) is non-finite or undefined
+        const isFiniteFA = (typeof fa === 'number' && Number.isFinite(fa));
+        const diff = Math.abs(lhl - rhl);
+
+        if (!isFiniteFA) {
+            statusBox.innerText = "❌ Limit Does Not Exist (Undefined or Infinity)";
+            statusBox.className = "status-box error";
+        } else if (diff < 0.01) {
+            statusBox.innerText = "✅ Limit Exists! (LHL ≈ RHL)";
+            statusBox.className = "status-box success";
+        } else {
+            statusBox.innerText = "❌ Limit Does Not Exist (LHL ≠ RHL)";
+            statusBox.className = "status-box error";
+        }
+
+        updateGraph(func, a);
+    }
+
+    function updateGraph(func, a) {
+        const xValues = [];
+        const yValues = [];
+        
+        for (let x = a - 20; x <= a + 20; x += 0.4) {
+            xValues.push(x.toFixed(1));
+            try {
+                const y = math.evaluate(func, {x: x});
+                yValues.push(Number.isFinite(y) ? y : null);
+            } catch (e) {
+                yValues.push(null);
+            }
+        }
+
+        if (myChart) myChart.destroy();
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: xValues,
+                datasets: [{
+                    label: 'f(x)',
+                    data: yValues,
+                    borderColor: '#4f8bf9',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false,
+                scales: {
+                    x: { ticks: { color: '#8b949e' }, grid: { color: '#30363d' } },
+                    y: { ticks: { color: '#8b949e' }, grid: { color: '#30363d' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // Initial Load
+    updateAll();
+</script>
+
+</body>
+</html>
